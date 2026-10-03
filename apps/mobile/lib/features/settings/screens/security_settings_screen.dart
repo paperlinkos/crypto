@@ -271,19 +271,23 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
                       ),
                     ),
                     const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user?.email ?? 'user@offramp.test',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textDark),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'KYC Tier: ${user?.kyc?['tier'] ?? 'TIER_1'}',
-                          style: const TextStyle(fontSize: 12, color: AppColors.deepEmerald, fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user?.email ?? 'user@offramp.test',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textDark),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'KYC Tier: ${user?.kyc?['tier'] ?? 'TIER_1'}',
+                            style: const TextStyle(fontSize: 12, color: AppColors.deepEmerald, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -356,21 +360,27 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
                       border: Border.all(color: AppColors.sageBorder),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.devices, color: AppColors.deepEmerald, size: 20),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(d['deviceFingerprint'] ?? 'Mobile Device', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                Text('IP: ${d['ipAddress'] ?? '127.0.0.1'}', style: const TextStyle(fontSize: 11, color: AppColors.mutedSage)),
-                              ],
-                            ),
-                          ],
+                        const Icon(Icons.devices, color: AppColors.deepEmerald, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                d['deviceFingerprint'] ?? 'Mobile Device',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                'IP: ${d['ipAddress'] ?? '127.0.0.1'}',
+                                style: const TextStyle(fontSize: 11, color: AppColors.mutedSage),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         const Icon(Icons.verified_user, color: AppColors.jade, size: 18),
                       ],
                     ),
@@ -410,30 +420,38 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
         border: Border.all(color: AppColors.sageBorder),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.lightMint,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: AppColors.deepEmerald, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark)),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.mutedSage)),
-                ],
-              ),
-            ],
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppColors.lightMint,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.deepEmerald, size: 20),
           ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, color: AppColors.mutedSage),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
           trailing,
         ],
       ),
