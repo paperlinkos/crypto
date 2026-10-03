@@ -225,3 +225,92 @@ Interactive Swagger Docs: `http://localhost:4000/api/docs`
 - **List Devices**: `GET /auth/devices` (returns list of devices with active session metadata)
 - **Revoke Device Session**: `DELETE /auth/devices/:sessionId`
 - **Logout**: `POST /auth/logout`
+
+---
+
+## 2. Double-Entry Ledger Endpoints
+
+All balances in the system are derived dynamically from immutable journal lines ($\sum \text{Debits} - \sum \text{Credits}$ or $\sum \text{Credits} - \sum \text{Debits}$). All amounts are integers in minor units (kobo, pesewas, satoshis, micro-USDT).
+
+### 2.1 Get Current User Balances
+- **Method**: `GET`
+- **Route**: `/ledger/balances?currency=NGN`
+- **Auth**: `Bearer <accessToken>`
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "userId": "c86e0821-...",
+    "currency": "NGN",
+    "availableMinor": "3000000", // ₦30,000 in kobo
+    "heldMinor": "1000000",      // ₦10,000 in kobo (reserved for pending bank transfer)
+    "totalMinor": "4000000"      // ₦40,000 in kobo
+  }
+  ```
+
+---
+
+### 2.2 Place Balance Hold (Payout Reservation)
+- **Method**: `POST`
+- **Route**: `/ledger/hold`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "amountMinor": "1500000", // ₦15,000
+    "currency": "NGN",
+    "idempotencyRef": "PAYOUT-HOLD-uuid-001",
+    "description": "Reserve funds for bank payout"
+  }
+  ```
+- **Success Response (200 OK)**: Moves funds from user's `ACTIVE` liability account to `HOLD` liability account atomically.
+
+---
+
+### 2.3 Release Balance Hold (Failed Payout Refund)
+- **Method**: `POST`
+- **Route**: `/ledger/release`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "amountMinor": "1500000",
+    "currency": "NGN",
+    "idempotencyRef": "PAYOUT-RELEASE-uuid-001",
+    "description": "Release held funds back to available"
+  }
+  ```
+- **Success Response (200 OK)**: Moves funds from user's `HOLD` liability account back to `ACTIVE` liability account atomically.
+
+---
+
+### 2.4 Admin Manual Credit (Double-Entry Balanced Journal)
+- **Method**: `POST`
+- **Route**: `/ledger/credit?userId=<userId>`
+- **Auth**: `Bearer <adminAccessToken>` (Requires `ADMIN` or `SUPER_ADMIN` role)
+- **Request Body**:
+  ```json
+  {
+    "amountMinor": "5000000",
+    "currency": "NGN",
+    "idempotencyRef": "ADMIN-CREDIT-uuid-001",
+    "description": "Manual balance credit"
+  }
+  ```
+- **Success Response (200 OK)**: Debits `1030-BANK-FLOAT-NGN` (Platform Asset) and credits `2010-USER-...-NGN` (Customer Liability).
+
+---
+
+### 2.5 Admin Manual Debit
+- **Method**: `POST`
+- **Route**: `/ledger/debit?userId=<userId>`
+- **Auth**: `Bearer <adminAccessToken>` (Requires `ADMIN` or `SUPER_ADMIN` role)
+- **Request Body**:
+  ```json
+  {
+    "amountMinor": "1000000",
+    "currency": "NGN",
+    "idempotencyRef": "ADMIN-DEBIT-uuid-001",
+    "description": "Manual balance debit"
+  }
+  ```
+- **Success Response (200 OK)**: Debits `2010-USER-...-NGN` and credits `1030-BANK-FLOAT-NGN`. Rejects if user available balance is insufficient.

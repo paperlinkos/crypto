@@ -3,40 +3,28 @@
 ## 1. What Is Built
 - **Monorepo Architecture**: Workspaces initialized (`/packages/shared`, `/apps/api`, `/apps/admin`, `/apps/mobile`, `/docs`).
 - **Shared Domain Package (`@offramp/shared`)**: Enums, types, and `MoneyUtil` for exact integer minor-unit arithmetic (kobo, pesewas, satoshis, micro-units).
-- **PostgreSQL 17 & Redis 7 Infrastructure**: Database `offramp_db` migrated with 15 Prisma models; Redis 7 caching and rate limiting connected.
-- **Master Ledger & Fixture Seed**: Seeded master double-entry accounts, super admin, test user, KYC Tier 1 profile, wallets, bank accounts, and initial rates.
+- **PostgreSQL 17 & Redis 7 Infrastructure**: Database `offramp_db` migrated with 15 Prisma models; Redis 7 caching, rate limiting, and session stores active.
 - **Authentication & Security Engine (`/apps/api`)**:
-  - OTP request and verification service with Redis rate limiting and attempt caps.
-  - User signup and login with JWT access token and rotating refresh token sessions.
-  - Device fingerprinting and session revocation.
-  - Transaction PIN service with bcrypt hashing, attempt counter, and 30-minute lockout after 5 consecutive failures.
-  - Two-Factor Authentication (TOTP) with secret generation, QR code data URL, enable, and disable.
-  - Staff / Admin login with role-based access control (`SUPER_ADMIN`, `ADMIN`, `SUPPORT`, `COMPLIANCE`).
-  - Rate limiting via `@nestjs/throttler` and route-level protection.
-- **Automated Tests**: 16/16 E2E tests passing in `apps/api/test/auth.e2e-spec.ts`.
-- **Documentation**: `/docs/schema.md` and `/docs/api.md` updated.
-- **Mobile Theme & Design Tokens**: Flutter theme with "Green Gradients & Cousins" palette in `apps/mobile/lib/theme/app_colors.dart`.
+  - OTP verification with rate limiting and attempt caps.
+  - JWT Access Token & Refresh Token session rotation.
+  - Transaction PIN with high-salt bcrypt hashing and 30-minute lockout after 5 consecutive failed attempts.
+  - TOTP Two-Factor Authentication with QR code data URLs.
+  - Role-based access control (`SUPER_ADMIN`, `ADMIN`, `SUPPORT`, `COMPLIANCE`).
+- **Double-Entry Ledger Module (`/apps/api/src/ledger`)**:
+  - Core primitives: `postBalancedEntry`, `credit`, `debit`, `hold`, `release`, `settleHold`.
+  - Dynamic live balance calculation from immutable journal entries ($\sum \text{Debits} - \sum \text{Credits}$).
+  - Strict idempotency key protection preventing double-crediting or duplicate postings.
+  - Concurrency verified with atomic database transactions.
+- **Automated Test Suite**: 25/25 E2E tests passing across Auth and Ledger modules.
+- **Documentation**: `/docs/schema.md` and `/docs/api.md` updated with complete specifications.
 
 ## 2. What Is Mocked / Sandboxed
-- Sandbox OTP code is returned in response body during development mode.
+- Sandbox OTP code transparency in development mode.
 - Mock exchange rates and sandbox crypto deposit addresses.
 
 ## 3. API Endpoints That Exist
-- `POST /api/v1/auth/otp/request`
-- `POST /api/v1/auth/signup`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/admin/login`
-- `POST /api/v1/auth/refresh`
-- `POST /api/v1/auth/logout`
-- `GET /api/v1/auth/me`
-- `POST /api/v1/auth/pin/set`
-- `POST /api/v1/auth/pin/verify`
-- `POST /api/v1/auth/pin/change`
-- `POST /api/v1/auth/2fa/generate`
-- `POST /api/v1/auth/2fa/enable`
-- `POST /api/v1/auth/2fa/disable`
-- `GET /api/v1/auth/devices`
-- `DELETE /api/v1/auth/devices/:id`
+- **Auth**: `POST /auth/otp/request`, `POST /auth/signup`, `POST /auth/login`, `POST /auth/admin/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/pin/set`, `POST /auth/pin/verify`, `POST /auth/pin/change`, `POST /auth/2fa/generate`, `POST /auth/2fa/enable`, `POST /auth/2fa/disable`, `GET /auth/devices`, `DELETE /auth/devices/:id`.
+- **Ledger**: `GET /ledger/balances`, `POST /ledger/hold`, `POST /ledger/release`, `POST /ledger/credit`, `POST /ledger/debit`.
 
 ## 4. Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string
@@ -45,14 +33,15 @@
 - `PORT`: `4000`
 
 ## 5. Decisions Made and Why
-- **Bcrypt + Lockout for PINs**: 4-digit transaction PINs are securely hashed and protected against brute-force attacks via a 5-attempt threshold that triggers a 30-minute lockout.
-- **Session-bound Refresh Tokens**: Refresh tokens embed the database session ID and are stored as one-way hashes to detect token replay or theft.
+- **No Editable Balance Column**: Followed Rule #1 strictly; balances are computed by aggregating immutable double-entry journal lines.
+- **Two-tier Sub-Accounts per User**: Each user receives an `ACTIVE` liability sub-account (`2010-USER-...`) and a `HOLD` liability sub-account (`2020-HOLD-...`) so payout reservations never compromise available balances.
 
 ## 6. Open TODOs / Known Bugs
 - None.
 
 ## 7. Exact Next Task
-- **Prompt 3: Ledger service**
-  - Build the ledger module: create accounts, post balanced entries in a DB transaction, reject unbalanced entries, compute balances from entries, and expose `credit(user, amount, ref)`, `debit(user, amount, ref)`, `hold(...)`, `release(...)`.
-  - All calls require an idempotency key.
-  - Write thorough tests including concurrency and duplicates.
+- **Prompt 4: Wallets and deposit detection (adapter pattern)**
+  - Create `WalletProvider` interface: `createAddress(user, asset, network)`, `getDepositStatus(txHash)`, `verifyWebhookSignature(req)`.
+  - Implement `SandboxWalletProvider` (simulated addresses & simulated deposits via admin endpoint).
+  - Build deposit webhook handler: signature verification, dedupe by `tx_hash`, confirmation tracking, rate locking at first detection, and ledger credit upon finality.
+  - Add TODO adapter file for production provider with docs link.
