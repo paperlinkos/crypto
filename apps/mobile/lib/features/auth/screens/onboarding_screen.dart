@@ -2,401 +2,71 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/app_colors.dart';
+import '../../../shared/components/onboarding_ball.dart';
 
 // ─────────────────────────────────────────────
-//  Data model for each onboarding page
+//  Page model
 // ─────────────────────────────────────────────
-class _OnboardingPage {
+
+class _PageModel {
   final String badge;
   final String headline;
-  final String highlight;
+  final String accent; // coloured trailing word
   final String body;
-  final Color coinColor;
-  final Color coinShine;
+  final List<String> chips;
+  final Color ballColor;
+  final Color ballShine;
   final String symbol;
 
-  const _OnboardingPage({
+  const _PageModel({
     required this.badge,
     required this.headline,
-    required this.highlight,
+    required this.accent,
     required this.body,
-    required this.coinColor,
-    required this.coinShine,
+    required this.chips,
+    required this.ballColor,
+    required this.ballShine,
     required this.symbol,
   });
 }
 
 const _pages = [
-  _OnboardingPage(
+  _PageModel(
     badge: '⚡  INSTANT SETTLEMENT',
     headline: 'Crypto to Naira,\nDirect to ',
-    highlight: 'Your Bank.',
-    body:
-        'Receive USDT, USDC or BTC at your personal address. Get paid in NGN or GHS in under 60 seconds at live locked rates.',
-    coinColor: Color(0xFF00E599),
-    coinShine: Color(0xFFA7FFD8),
+    accent: 'Your Bank.',
+    body: 'Receive USDT, USDC or BTC at your personal address. Get paid in NGN or GHS in under 60 seconds at live locked rates.',
+    chips: ['USDT', 'USDC', 'BTC', 'ETH'],
+    ballColor: Color(0xFF00E599),
+    ballShine: Color(0xFFB0FFE2),
     symbol: '₮',
   ),
-  _OnboardingPage(
+  _PageModel(
     badge: '🔒  15-MIN RATE LOCK',
     headline: 'Guaranteed Rate,\nZero ',
-    highlight: 'Slippage.',
-    body:
-        'Your rate is locked the moment your deposit is detected on-chain. No nasty surprises — what you see is what hits your account.',
-    coinColor: Color(0xFFF59E0B),
-    coinShine: Color(0xFFFFE08A),
+    accent: 'Slippage.',
+    body: 'Your rate is locked the moment your deposit is detected on-chain. No nasty surprises — what you see is what hits your account.',
+    chips: ['NGN', 'GHS', 'Live Rates'],
+    ballColor: Color(0xFFF59E0B),
+    ballShine: Color(0xFFFFE08A),
     symbol: '₿',
   ),
-  _OnboardingPage(
+  _PageModel(
     badge: '🛡  INSTITUTIONAL GRADE',
     headline: 'Double-Entry Ledger.\nYour Money, ',
-    highlight: 'Fully Safe.',
-    body:
-        'Every kobo is tracked in a tamper-proof ledger. KYC-tiered limits keep your account safe while you scale.',
-    coinColor: Color(0xFF10B981),
-    coinShine: Color(0xFF6EFFD4),
+    accent: 'Fully Safe.',
+    body: 'Every kobo is tracked in a tamper-proof ledger. KYC-tiered limits keep your account safe while you scale.',
+    chips: ['KYC Verified', 'Double-Entry', 'Audit Log'],
+    ballColor: Color(0xFF10B981),
+    ballShine: Color(0xFF6EFFD4),
     symbol: '₦',
   ),
 ];
 
 // ─────────────────────────────────────────────
-//  Coin physics painter
+//  Onboarding screen
 // ─────────────────────────────────────────────
-class _CoinPainter extends CustomPainter {
-  final double coinY;
-  final double squash;
-  final Color coinColor;
-  final Color coinShine;
-  final String symbol;
-  final double rotation;
 
-  const _CoinPainter({
-    required this.coinY,
-    required this.squash,
-    required this.coinColor,
-    required this.coinShine,
-    required this.symbol,
-    required this.rotation,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final radius = size.width * 0.36;
-    final cy = coinY * size.height;
-
-    // Shadow
-    final shadowPaint = Paint()
-      ..color = coinColor.withValues(alpha: 0.25 * (1 - coinY * 0.5))
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 20 * squash);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(cx, size.height - 14),
-        width: radius * 2.2 * (1 - (1 - squash) * 0.4),
-        height: 20 * squash,
-      ),
-      shadowPaint,
-    );
-
-    // Coin body
-    canvas.save();
-    canvas.translate(cx, cy);
-    canvas.rotate(rotation);
-    canvas.scale(1, squash);
-
-    final bodyPaint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-0.3, -0.4),
-        radius: 0.85,
-        colors: [coinShine, coinColor, coinColor.withValues(alpha: 0.85)],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromCircle(center: Offset.zero, radius: radius));
-    canvas.drawCircle(Offset.zero, radius, bodyPaint);
-
-    // Inner ring
-    final ringPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.18)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    canvas.drawCircle(Offset.zero, radius * 0.78, ringPaint);
-
-    // Symbol text
-    final tp = TextPainter(
-      text: TextSpan(
-        text: symbol,
-        style: TextStyle(
-          fontSize: radius * 0.9,
-          fontWeight: FontWeight.w800,
-          color: Colors.white.withValues(alpha: 0.92),
-          shadows: [
-            Shadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              offset: const Offset(1, 2),
-              blurRadius: 4,
-            ),
-          ],
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_CoinPainter old) =>
-      old.coinY != coinY ||
-      old.squash != squash ||
-      old.coinColor != coinColor ||
-      old.symbol != symbol ||
-      old.rotation != rotation;
-}
-
-// ─────────────────────────────────────────────
-//  Bouncing coin widget
-// ─────────────────────────────────────────────
-class _BouncingCoin extends StatefulWidget {
-  final Color coinColor;
-  final Color coinShine;
-  final String symbol;
-
-  const _BouncingCoin({
-    required this.coinColor,
-    required this.coinShine,
-    required this.symbol,
-  });
-
-  @override
-  State<_BouncingCoin> createState() => _BouncingCoinState();
-}
-
-class _BouncingCoinState extends State<_BouncingCoin>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  double _y = 0.08;
-  double _vy = 0.0;
-  double _squash = 1.0;
-  double _rotation = 0.0;
-
-  static const double _gravity = 2.8;
-  static const double _bounceDamping = 0.62;
-  static const double _groundY = 0.82;
-  static const double _rotSpeed = 1.2;
-
-  DateTime _lastTick = DateTime.now();
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(days: 1),
-    )
-      ..addListener(_tick)
-      ..forward();
-  }
-
-  void _tick() {
-    final now = DateTime.now();
-    final dt = now.difference(_lastTick).inMicroseconds / 1e6;
-    _lastTick = now;
-    if (dt <= 0 || dt > 0.1) return;
-
-    setState(() {
-      _vy += _gravity * dt;
-      _y += _vy * dt;
-      _rotation += _rotSpeed * dt;
-
-      if (_y >= _groundY) {
-        _y = _groundY;
-        _vy = -_vy * _bounceDamping;
-        _squash = 0.65;
-        HapticFeedback.lightImpact();
-        if (_vy.abs() < 0.05) {
-          _vy = 0;
-        }
-      }
-
-      if (_squash < 1.0) {
-        _squash = (_squash + dt * 8).clamp(0.65, 1.0);
-      }
-    });
-  }
-
-  void _onTap() {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _y = 0.08;
-      _vy = 0.0;
-      _squash = 1.0;
-    });
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _onTap,
-      child: CustomPaint(
-        painter: _CoinPainter(
-          coinY: _y,
-          squash: _squash,
-          coinColor: widget.coinColor,
-          coinShine: widget.coinShine,
-          symbol: widget.symbol,
-          rotation: _rotation,
-        ),
-        child: const SizedBox.expand(),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Dot indicator
-// ─────────────────────────────────────────────
-class _DotIndicator extends StatelessWidget {
-  final int count;
-  final int current;
-  final Color activeColor;
-
-  const _DotIndicator({
-    required this.count,
-    required this.current,
-    required this.activeColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(count, (i) {
-        final isActive = i == current;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: isActive ? 24 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: isActive ? activeColor : activeColor.withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(4),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Feature chips
-// ─────────────────────────────────────────────
-class _FeatureChips extends StatelessWidget {
-  final List<String> chips;
-  final Color color;
-
-  const _FeatureChips({required this.chips, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: chips.map((c) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withValues(alpha: 0.3)),
-          ),
-          child: Text(
-            c,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Tap hint (auto-fades)
-// ─────────────────────────────────────────────
-class _TapHint extends StatefulWidget {
-  final Color color;
-  const _TapHint({required this.color});
-
-  @override
-  State<_TapHint> createState() => _TapHintState();
-}
-
-class _TapHintState extends State<_TapHint>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) _ctrl.forward();
-      Future.delayed(const Duration(milliseconds: 2200), () {
-        if (mounted) _ctrl.reverse();
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _anim,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.touch_app_rounded,
-              color: widget.color.withValues(alpha: 0.55), size: 15),
-          const SizedBox(width: 5),
-          Text(
-            'Tap to bounce again',
-            style: TextStyle(
-              fontSize: 12,
-              color: widget.color.withValues(alpha: 0.55),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Main onboarding screen
-// ─────────────────────────────────────────────
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -406,254 +76,352 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
-  final PageController _pageCtrl = PageController();
   int _currentPage = 0;
+  bool _transitioning = false;
 
-  static const _chipSets = [
-    ['USDT', 'USDC', 'BTC', 'ETH'],
-    ['NGN', 'GHS', 'Live Rates'],
-    ['KYC Verified', 'Double-Entry', 'Audit Log'],
-  ];
+  // One GlobalKey per page so we can call the ball's methods
+  final List<GlobalKey<OnboardingBallState>> _ballKeys = List.generate(
+    _pages.length,
+    (_) => GlobalKey<OnboardingBallState>(),
+  );
+
+  // Content fade/slide animation
+  late final AnimationController _contentCtrl;
+  late final Animation<double> _contentFade;
+  late final Animation<Offset> _contentSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _contentCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _contentFade = CurvedAnimation(parent: _contentCtrl, curve: Curves.easeOut);
+    _contentSlide = Tween<Offset>(
+      begin: const Offset(0.04, 0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _contentCtrl, curve: Curves.easeOut));
+    _contentCtrl.forward();
+  }
 
   @override
   void dispose() {
-    _pageCtrl.dispose();
+    _contentCtrl.dispose();
     super.dispose();
   }
 
-  void _goToPage(int page) {
-    _pageCtrl.animateToPage(
-      page,
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeInOut,
+  // ── Navigation ───────────────────────────────────────────────────────────
+
+  void _advance() {
+    if (_transitioning) return;
+    if (_currentPage >= _pages.length - 1) {
+      context.go('/login');
+      return;
+    }
+    _triggerPageTransition(_currentPage + 1);
+  }
+
+  void _skip() => context.go('/login');
+
+  void _triggerPageTransition(int nextPage) {
+    if (_transitioning) return;
+    setState(() => _transitioning = true);
+
+    HapticFeedback.mediumImpact();
+
+    // Step 1 — launch the current ball upward
+    _ballKeys[_currentPage].currentState?.triggerLaunch(
+      onLaunched: () {
+        // Step 2 — switch page (ball has cleared the top)
+        if (!mounted) return;
+        setState(() {
+          _currentPage = nextPage;
+          _transitioning = false;
+        });
+
+        // Step 3 — animate content text in
+        _contentCtrl
+          ..reset()
+          ..forward();
+
+        // Step 4 — after one frame let the new ball drop in hard
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _ballKeys[nextPage].currentState?.triggerImpact();
+        });
+      },
     );
   }
 
-  void _onPageChanged(int page) {
-    setState(() => _currentPage = page);
-  }
-
-  void _next() {
-    if (_currentPage < _pages.length - 1) {
-      _goToPage(_currentPage + 1);
-    } else {
-      context.go('/login');
-    }
-  }
+  // ── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final page = _pages[_currentPage];
-    final size = MediaQuery.of(context).size;
     final safePad = MediaQuery.of(context).padding;
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: AppColors.obsidianForest,
       body: Stack(
         children: [
-          // Ambient glow blob
+          // ── Ambient glow blob (tracks page) ──────────────────────────
           AnimatedPositioned(
-            duration: const Duration(milliseconds: 600),
+            duration: const Duration(milliseconds: 700),
             curve: Curves.easeOut,
             top: -80,
             left: _currentPage == 0
-                ? -40
+                ? -30
                 : _currentPage == 1
-                    ? size.width / 2 - 140
-                    : size.width - 200,
+                    ? size.width / 2 - 150
+                    : size.width - 180,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 600),
-              width: 300,
-              height: 300,
+              duration: const Duration(milliseconds: 700),
+              width: 320,
+              height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    page.coinColor.withValues(alpha: 0.20),
-                    page.coinColor.withValues(alpha: 0.0),
+                    page.ballColor.withValues(alpha: 0.18),
+                    page.ballColor.withValues(alpha: 0.0),
                   ],
                 ),
               ),
             ),
           ),
 
-          // Pages
-          PageView.builder(
-            controller: _pageCtrl,
-            onPageChanged: _onPageChanged,
-            itemCount: _pages.length,
-            itemBuilder: (_, index) => _buildPage(index),
+          // ── All ball layers (stacked, only current is visible via
+          //    Offstage so keys persist) ──────────────────────────────
+          ...List.generate(_pages.length, (i) {
+            final p = _pages[i];
+            return Positioned.fill(
+              child: Offstage(
+                offstage: i != _currentPage,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: safePad.top + 24 + _textAreaHeight(context),
+                    bottom: _bottomControlsHeight(context) + 16,
+                    left: 32,
+                    right: 32,
+                  ),
+                  child: OnboardingBall(
+                    key: _ballKeys[i],
+                    ballColor: p.ballColor,
+                    ballShine: p.ballShine,
+                    symbol: p.symbol,
+                  ),
+                ),
+              ),
+            );
+          }),
+
+          // ── Text content (fades/slides on transition) ─────────────
+          Positioned(
+            top: safePad.top + 24,
+            left: 24,
+            right: 24,
+            height: _textAreaHeight(context),
+            child: FadeTransition(
+              opacity: _contentFade,
+              child: SlideTransition(
+                position: _contentSlide,
+                child: _buildTextContent(page),
+              ),
+            ),
           ),
 
-          // Bottom controls overlay
+          // ── Bottom controls ───────────────────────────────────────
           Positioned(
             left: 24,
             right: 24,
             bottom: safePad.bottom + 28,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _DotIndicator(
-                  count: _pages.length,
-                  current: _currentPage,
-                  activeColor: page.coinColor,
-                ),
-                const SizedBox(height: 22),
-                GestureDetector(
-                  onTap: _next,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 350),
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          page.coinColor,
-                          page.coinShine.withValues(alpha: 0.85),
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: page.coinColor.withValues(alpha: 0.42),
-                          blurRadius: 22,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        _currentPage == _pages.length - 1
-                            ? 'Get Started  →'
-                            : 'Continue  →',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.obsidianForest,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (_currentPage < _pages.length - 1)
-                  GestureDetector(
-                    onTap: () => context.go('/login'),
-                    child: Text(
-                      'Skip for now',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.mutedSubtext.withValues(alpha: 0.65),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            child: _buildBottomControls(page),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPage(int index) {
-    final page = _pages[index];
-    final chips = _chipSets[index];
-    final isActive = index == _currentPage;
-    final safePad = MediaQuery.of(context).padding;
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
-    return Padding(
-      padding: EdgeInsets.only(
-        top: safePad.top + 24,
-        bottom: 180,
-        left: 24,
-        right: 24,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Badge
-          AnimatedOpacity(
-            duration: const Duration(milliseconds: 300),
-            opacity: isActive ? 1.0 : 0.0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+  double _textAreaHeight(BuildContext ctx) {
+    // Text + chips area — leaves plenty of room for the ball
+    return MediaQuery.of(ctx).size.height * 0.40;
+  }
+
+  double _bottomControlsHeight(BuildContext ctx) {
+    return MediaQuery.of(ctx).padding.bottom + 28 + 56 + 22 + 30;
+  }
+
+  Widget _buildTextContent(_PageModel page) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Badge pill
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+          decoration: BoxDecoration(
+            color: page.ballColor.withValues(alpha: 0.13),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: page.ballColor.withValues(alpha: 0.35)),
+          ),
+          child: Text(
+            page.badge,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: page.ballColor,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        // Headline
+        RichText(
+          text: TextSpan(
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textLight,
+              height: 1.22,
+              letterSpacing: -0.5,
+            ),
+            children: [
+              TextSpan(text: page.headline),
+              TextSpan(
+                text: page.accent,
+                style: TextStyle(color: page.ballColor),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Body
+        Text(
+          page.body,
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.mutedSubtext,
+            height: 1.6,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Chips
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: page.chips.map((c) {
+            return Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
               decoration: BoxDecoration(
-                color: page.coinColor.withValues(alpha: 0.13),
+                color: page.ballColor.withValues(alpha: 0.11),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: page.coinColor.withValues(alpha: 0.35)),
+                border: Border.all(
+                    color: page.ballColor.withValues(alpha: 0.28)),
               ),
               child: Text(
-                page.badge,
+                c,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: page.ballColor,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomControls(_PageModel page) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Dot indicators
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_pages.length, (i) {
+            final active = i == _currentPage;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOut,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: active ? 24 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: active
+                    ? page.ballColor
+                    : page.ballColor.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 22),
+
+        // CTA button
+        GestureDetector(
+          onTap: _advance,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 350),
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  page.ballColor,
+                  page.ballShine.withValues(alpha: 0.88),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: page.ballColor.withValues(alpha: 0.40),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                _currentPage == _pages.length - 1
+                    ? 'Get Started  →'
+                    : 'Continue  →',
+                style: const TextStyle(
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: page.coinColor,
-                  letterSpacing: 0.8,
+                  color: AppColors.obsidianForest,
+                  letterSpacing: 0.3,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 20),
+        ),
 
-          // Headline
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                fontSize: 31,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textLight,
-                height: 1.2,
-                letterSpacing: -0.5,
+        const SizedBox(height: 12),
+
+        // Skip
+        if (_currentPage < _pages.length - 1)
+          GestureDetector(
+            onTap: _skip,
+            child: Text(
+              'Skip for now',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.mutedSubtext.withValues(alpha: 0.65),
+                fontWeight: FontWeight.w500,
               ),
-              children: [
-                TextSpan(text: page.headline),
-                TextSpan(
-                  text: page.highlight,
-                  style: TextStyle(color: page.coinColor),
-                ),
-              ],
             ),
           ),
-          const SizedBox(height: 14),
-
-          // Body
-          Text(
-            page.body,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.mutedSubtext,
-              height: 1.6,
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // Chips
-          _FeatureChips(chips: chips, color: page.coinColor),
-
-          // Coin area
-          Expanded(
-            child: Stack(
-              children: [
-                _BouncingCoin(
-                  coinColor: page.coinColor,
-                  coinShine: page.coinShine,
-                  symbol: page.symbol,
-                ),
-                if (isActive)
-                  Positioned(
-                    bottom: 4,
-                    left: 0,
-                    right: 0,
-                    child: _TapHint(color: page.coinColor),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
