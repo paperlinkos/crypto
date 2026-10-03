@@ -406,3 +406,78 @@ Personal deposit addresses are generated per user, asset, and network. Incoming 
 - **Route**: `/wallets/simulate-deposit`
 - **Auth**: `Bearer <adminAccessToken>` (Admin only)
 - **Request Body**: Same as webhook payload. Allows instant testing of the deposit-to-fiat pipeline without real crypto.
+
+---
+
+## 4. Rates Engine & Quote Calculator Endpoints
+
+Market prices are fetched periodically, cached in Redis with a 30-second TTL, adjusted by a configurable platform spread %, and audited with a 90-second stale-rate cutoff.
+
+### 4.1 List Live Rates & Spreads
+- **Method**: `GET`
+- **Route**: `/rates?fiat=NGN` (or `fiat=GHS`)
+- **Auth**: Public
+- **Success Response (200 OK)**:
+  ```json
+  [
+    {
+      "asset": "USDT",
+      "fiat": "NGN",
+      "baseSpotRate": 1545.0,
+      "spreadPercent": 1.5,
+      "effectiveRate": 1521.825,
+      "source": "SANDBOX_FEED",
+      "timestamp": "2026-10-03T07:30:00.000Z",
+      "isStale": false
+    }
+  ]
+  ```
+
+---
+
+### 4.2 Calculate Off-Ramp Quote
+- **Method**: `GET`
+- **Route**: `/rates/quote?asset=USDT&amount=100&fiat=NGN`
+- **Auth**: Public
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "quoteId": "QUOTE-9b2a...",
+    "asset": "USDT",
+    "fiat": "NGN",
+    "cryptoAmount": "100",
+    "baseSpotRate": "1545.0000",
+    "spreadPercent": "1.5%",
+    "effectiveRate": "1521.8250",
+    "grossFiatAmount": "154500.00",
+    "spreadFeeFiat": "2317.50",
+    "netPayoutFiat": "152182.50",
+    "netPayoutMinor": "15218250", // ₦152,182.50 in kobo
+    "validForSeconds": 900,
+    "expiresAt": "2026-10-03T07:45:00.000Z",
+    "isStale": false
+  }
+  ```
+- **Error (503 Service Unavailable)**: Returned if the feed latency exceeds 90 seconds.
+
+---
+
+### 4.3 Update Spread Percentage (Admin Only)
+- **Method**: `PATCH`
+- **Route**: `/rates/spread`
+- **Auth**: `Bearer <adminAccessToken>` (Admin only)
+- **Request Body**:
+  ```json
+  {
+    "asset": "USDT",
+    "spreadPercent": 2.0
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "message": "Spread for USDT updated to 2%",
+    "asset": "USDT",
+    "spreadPercent": 2
+  }
+  ```
