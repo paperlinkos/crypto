@@ -415,46 +415,46 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                         border: Border.all(color: AppColors.sageBorder),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 38,
-                                height: 38,
-                                decoration: BoxDecoration(
-                                  color: AppColors.lightMint,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_downward,
-                                  color: AppColors.deepEmerald,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '+${CurrencyFormatter.formatCryptoMinor(dep.amountMinor, dep.asset)} ${dep.asset}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${dep.confirmations}/${dep.requiredConfirmations} confirms',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.mutedSage,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: AppColors.lightMint,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_downward,
+                              color: AppColors.deepEmerald,
+                              size: 20,
+                            ),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '+${CurrencyFormatter.formatCryptoMinor(dep.amountMinor, dep.asset)} ${dep.asset}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                                Text(
+                                  '${dep.confirmations}/${dep.requiredConfirmations} confirms',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.mutedSage,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           StatusBadge(status: dep.status),
                         ],
                       ),

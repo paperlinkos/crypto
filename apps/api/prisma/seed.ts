@@ -76,11 +76,25 @@ async function main() {
   const pinHash = await bcrypt.hash('1234', 10);
 
   const testUser = await prisma.user.upsert({
+    where: { email: 'user@offramp.co' },
+    update: { passwordHash: userPasswordHash, pinHash: pinHash },
+    create: {
+      email: 'user@offramp.co',
+      phoneNumber: '+2348012345678',
+      passwordHash: userPasswordHash,
+      pinHash: pinHash,
+      status: UserStatus.ACTIVE,
+      country: 'NG',
+      autoPayout: true,
+    },
+  });
+
+  await prisma.user.upsert({
     where: { email: 'user@offramp.test' },
-    update: {},
+    update: { passwordHash: userPasswordHash, pinHash: pinHash },
     create: {
       email: 'user@offramp.test',
-      phoneNumber: '+2348012345678',
+      phoneNumber: '+2348098765432',
       passwordHash: userPasswordHash,
       pinHash: pinHash,
       status: UserStatus.ACTIVE,

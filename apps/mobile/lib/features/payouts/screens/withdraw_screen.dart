@@ -270,6 +270,8 @@ class _WithdrawScreenState extends ConsumerState<WithdrawScreen> {
                               value: acc,
                               child: Text(
                                 '${acc.bankName} • ${acc.accountNumber} (${acc.verifiedName})',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                               ),
                             );

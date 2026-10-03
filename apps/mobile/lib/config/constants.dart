@@ -1,6 +1,14 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class AppConstants {
   // API Base URL (Default to local backend API on port 4000)
-  static const String defaultApiBaseUrl = 'http://127.0.0.1:4000/api/v1';
+  static String get defaultApiBaseUrl {
+    if (!kIsWeb && Platform.isAndroid) {
+      return 'http://10.0.2.2:4000/api/v1';
+    }
+    return 'http://127.0.0.1:4000/api/v1';
+  }
 
   // Supported Assets
   static const String usdt = 'USDT';
