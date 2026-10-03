@@ -256,6 +256,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     variant: ButtonVariant.primary,
                     onPressed: _onNext,
                   ),
+
+                  const SizedBox(height: 10),
+
+                  // Google Sign-In Shortcut Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        // Direct navigation into app home
+                        context.go('/home');
+                      },
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        side: const BorderSide(color: AppColors.sageBorder, width: 1.2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _GoogleGLogoWidget(),
+                          SizedBox(width: 8),
+                          Text(
+                            'Sign in with Google',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -951,4 +988,38 @@ class OnboardingItem {
     required this.headlineAccent,
     required this.description,
   });
+}
+
+class _GoogleGLogoWidget extends StatelessWidget {
+  const _GoogleGLogoWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+      ),
+      child: Center(
+        child: Text(
+          'G',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            foreground: Paint()
+              ..shader = const LinearGradient(
+                colors: [
+                  Color(0xFF4285F4),
+                  Color(0xFFEA4335),
+                  Color(0xFFFBBC05),
+                  Color(0xFF34A853),
+                ],
+              ).createShader(const Rect.fromLTWH(0, 0, 20, 20)),
+          ),
+        ),
+      ),
+    );
+  }
 }

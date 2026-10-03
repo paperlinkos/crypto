@@ -179,6 +179,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 isLoading: authState.isLoading,
                 onPressed: _handleSubmit,
               ),
+
+              const SizedBox(height: 20),
+
+              // OR Divider
+              Row(
+                children: [
+                  Expanded(child: Container(height: 1, color: AppColors.sageBorder)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mutedSage,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Container(height: 1, color: AppColors.sageBorder)),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Google Sign-In / Sign-Up Button
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: OutlinedButton(
+                  onPressed: () {
+                    // Navigate directly into app home
+                    context.go('/home');
+                  },
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: AppColors.sageBorder, width: 1.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(27),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const _GoogleGLogoWidget(),
+                      const SizedBox(width: 10),
+                      Text(
+                        _isSignUpMode ? 'Sign up with Google' : 'Sign in with Google',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -218,6 +276,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GoogleGLogoWidget extends StatelessWidget {
+  const _GoogleGLogoWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+      ),
+      child: Center(
+        child: Text(
+          'G',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            foreground: Paint()
+              ..shader = const LinearGradient(
+                colors: [
+                  Color(0xFF4285F4),
+                  Color(0xFFEA4335),
+                  Color(0xFFFBBC05),
+                  Color(0xFF34A853),
+                ],
+              ).createShader(const Rect.fromLTWH(0, 0, 22, 22)),
+          ),
         ),
       ),
     );
