@@ -45,3 +45,35 @@ export class DepositWebhookDto {
   @Min(0)
   confirmations: number;
 }
+
+export class WithdrawCryptoDto {
+  @ApiProperty({ enum: CryptoAsset, example: CryptoAsset.USDT })
+  @IsEnum(CryptoAsset)
+  @IsNotEmpty()
+  asset: CryptoAsset;
+
+  @ApiProperty({ enum: BlockchainNetwork, example: BlockchainNetwork.TRON_TRC20 })
+  @IsEnum(BlockchainNetwork)
+  @IsNotEmpty()
+  network: BlockchainNetwork;
+
+  @ApiProperty({ example: 'TYDzsYUEpvnYmQk4zGP9sWWcTEd2MiAtW6' })
+  @IsString()
+  @IsNotEmpty()
+  destinationAddress: string;
+
+  @ApiProperty({ example: '50000000', description: 'Amount in minor units (micro-units/satoshis)' })
+  @IsString()
+  @Matches(/^\d+$/)
+  amountMinor: string;
+
+  @ApiProperty({ example: '1234', description: '4-digit transaction PIN' })
+  @IsString()
+  @IsNotEmpty()
+  pin: string;
+
+  @ApiProperty({ example: 'idemp-crypto-withdraw-001' })
+  @IsString()
+  @IsNotEmpty()
+  idempotencyKey: string;
+}

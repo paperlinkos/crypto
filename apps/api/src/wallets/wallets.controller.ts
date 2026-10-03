@@ -13,7 +13,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { WalletsService } from './wallets.service';
-import { AssignWalletDto, DepositWebhookDto } from './dto/wallets.dto';
+import { AssignWalletDto, DepositWebhookDto, WithdrawCryptoDto } from './dto/wallets.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -24,6 +24,18 @@ import { UserRole } from '@prisma/client';
 @Controller('wallets')
 export class WalletsController {
   constructor(private walletsService: WalletsService) {}
+
+  @Post('withdraw')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Withdraw crypto on-chain to external wallet address' })
+  async withdrawCrypto(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: WithdrawCryptoDto,
+  ) {
+    return await this.walletsService.withdrawCrypto(userId, dto);
+  }
 
   @Get()
   @UseGuards(JwtAuthGuard)

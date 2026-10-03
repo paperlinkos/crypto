@@ -25,6 +25,13 @@ export interface WebhookDepositPayload {
   confirmations: number;
 }
 
+export interface SendCryptoResult {
+  txHash: string;
+  networkFeeMinor: bigint;
+  status: 'PENDING' | 'CONFIRMED' | 'FAILED';
+  providerRef: string;
+}
+
 export interface IWalletProvider {
   /**
    * Generates or assigns a unique per-user deposit address for an asset & blockchain.
@@ -39,6 +46,16 @@ export interface IWalletProvider {
    * Queries provider for current blockchain confirmation status of a transaction hash.
    */
   getDepositStatus(txHash: string): Promise<DepositStatusResult | null>;
+
+  /**
+   * Dispatches an on-chain cryptocurrency withdrawal / payout to an external recipient address.
+   */
+  sendCrypto(
+    asset: CryptoAsset,
+    network: BlockchainNetwork,
+    destinationAddress: string,
+    amountMinor: bigint,
+  ): Promise<SendCryptoResult>;
 
   /**
    * Verifies incoming webhook signature to prevent tampering.

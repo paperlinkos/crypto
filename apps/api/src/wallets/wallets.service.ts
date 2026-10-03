@@ -287,4 +287,86 @@ export class WalletsService {
 
     return deposit;
   }
+
+  /**
+   * Dispatches on-chain cryptocurrency withdrawal with PIN authorization and audit logging.
+   */
+  async withdrawCrypto(
+    userId: string,
+    dto: {
+      asset: CryptoAsset;
+      network: BlockchainNetwork;
+      destinationAddress: string;
+      amountMinor: string;
+      pin: string;
+      idempotencyKey: string;
+    },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User account not found');
+    }
+
+    if (!user.pinHash) {
+      throw new BadRequestException('Transaction PIN is not configured on this account');
+    }
+
+    const bcrypt = await import('bcrypt');
+    const isPinValid = await bcrypt.compare(dto.pin, user.pinHash);
+    if (!isPinValid) {
+      throw new UnauthorizedException('Invalid 4-digit transaction PIN');
+    }
+
+    const amountMinorBigInt = BigInt(dto.amountMinor);
+    if (amountMinorBigInt <= BigInt(0)) {
+      throw new BadRequestException('Withdrawal amount must be greater than zero');
+    }
+
+    // Dispatch broadcast via wallet provider
+    const broadcast = await this.walletProvider.sendCrypto(
+      dto.asset,
+      dto.network,
+      dto.destinationAddress,
+      amountMinorBigInt,
+    );
+
+    // Record audit log
+    await this.prisma.auditLog.create({
+      data: {
+        actorType: 'USER',
+        actorId: userId,
+        action: 'CRYPTO_WITHDRAWAL',
+        entityType: 'WALLET',
+        entityId: userId,
+        newState: {
+          asset: dto.asset,
+          network: dto.network,
+          destinationAddress: dto.destinationAddress,
+          amountMinor: dto.amountMinor,
+          txHash: broadcast.txHash,
+          networkFeeMinor: broadcast.networkFeeMinor.toString(),
+          providerRef: broadcast.providerRef,
+        },
+      },
+    });
+
+    this.logger.log(
+      `[CRYPTO WITHDRAWAL] Dispatched ${dto.amountMinor} ${dto.asset} to [${dto.destinationAddress}]. TxHash: [${broadcast.txHash}]`,
+    );
+
+    return {
+      txHash: broadcast.txHash,
+      asset: dto.asset,
+      network: dto.network,
+      destinationAddress: dto.destinationAddress,
+      amountMinor: dto.amountMinor,
+      networkFeeMinor: broadcast.networkFeeMinor.toString(),
+      status: broadcast.status,
+      providerRef: broadcast.providerRef,
+      createdAt: new Date().toISOString(),
+    };
+  }
 }

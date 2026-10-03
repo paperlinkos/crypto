@@ -41,6 +41,19 @@ export class ProductionWalletProvider implements IWalletProvider {
     );
   }
 
+  async sendCrypto(
+    asset: CryptoAsset,
+    network: BlockchainNetwork,
+    destinationAddress: string,
+    amountMinor: bigint,
+  ): Promise<import('../interfaces/wallet-provider.interface').SendCryptoResult> {
+    // TODO: Call vendor API (e.g. POST /v1/wallets/transfer)
+    // Docs: https://docs.yellowcard.io/docs/payouts or https://developers.fireblocks.com/reference/create-transaction
+    throw new NotImplementedException(
+      'ProductionWalletProvider: Real vendor keys not configured.',
+    );
+  }
+
   verifyWebhookSignature(headers: Record<string, any>, rawPayload: string): boolean {
     // TODO: Verify HMAC-SHA512 / RSA signature with vendor's public key or secret
     return false;

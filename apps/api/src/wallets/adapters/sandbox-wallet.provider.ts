@@ -66,6 +66,30 @@ export class SandboxWalletProvider implements IWalletProvider {
     };
   }
 
+  async sendCrypto(
+    asset: CryptoAsset,
+    network: BlockchainNetwork,
+    destinationAddress: string,
+    amountMinor: bigint,
+  ) {
+    const txHash = `0x${crypto.randomBytes(32).toString('hex')}`;
+    const providerRef = `SANDBOX_TX_${network}_${crypto.randomBytes(8).toString('hex')}`;
+    
+    // Minor fee: 1 USDT (1_000_000 micro-units) or 10,000 satoshis for BTC
+    const networkFeeMinor = asset === CryptoAsset.BTC ? BigInt(10000) : BigInt(1000000);
+
+    this.logger.log(
+      `[SANDBOX WALLET] Simulated on-chain broadcast of ${amountMinor.toString()} minor ${asset} on ${network} to [${destinationAddress}]. TxHash: [${txHash}]`,
+    );
+
+    return {
+      txHash,
+      networkFeeMinor,
+      status: 'CONFIRMED' as const,
+      providerRef,
+    };
+  }
+
   verifyWebhookSignature(headers: Record<string, any>, rawPayload: string): boolean {
     const signature =
       headers['x-wallet-signature'] ||
