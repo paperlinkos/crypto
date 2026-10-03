@@ -35,7 +35,7 @@ class CustomButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(27),
           boxShadow: [
             BoxShadow(
-              color: AppColors.electricMint.withOpacity(0.35),
+              color: AppColors.electricMint.withValues(alpha: 0.35),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -88,24 +88,30 @@ class CustomButton extends StatelessWidget {
                         valueColor: AlwaysStoppedAnimation<Color>(textColor),
                       ),
                     )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (icon != null) ...[
-                          Icon(icon, color: textColor, size: 18),
-                          const SizedBox(width: 8),
-                        ],
-                        Text(
-                          text,
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.3,
-                          ),
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (icon != null) ...[
+                              Icon(icon, color: textColor, size: 18),
+                              const SizedBox(width: 8),
+                            ],
+                            Text(
+                              text,
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
             ),
           ),

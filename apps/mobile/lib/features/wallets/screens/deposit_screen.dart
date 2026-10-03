@@ -350,7 +350,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
 
         // Interactive Demo Tool: Simulate Incoming Bank Deposit
         CustomButton(
-          text: '⚡ Demo: Simulate Incoming ₦50k Bank Deposit',
+          text: 'Simulate Incoming ₦50k Deposit',
           variant: ButtonVariant.primary,
           icon: Icons.flash_on_rounded,
           onPressed: _triggerSimulatedNairaDeposit,
@@ -676,7 +676,7 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
                     onPressed: _triggerSimulatedCryptoLock,
                     icon: const Icon(Icons.lock_clock_rounded, color: AppColors.deepEmerald, size: 16),
                     label: const Text(
-                      '⚡ Demo: Trigger 15-Min Rate Lock Countdown',
+                      'Simulate 15-Min Rate Lock Countdown',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.deepEmerald),
                     ),
                     style: OutlinedButton.styleFrom(
