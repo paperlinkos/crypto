@@ -214,34 +214,104 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 18),
+                      // Direct Action Buttons inside Balance Card
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => context.go('/deposit'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.electricMint,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add, color: AppColors.obsidianForest, size: 18),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Deposit',
+                                      style: TextStyle(
+                                        color: AppColors.obsidianForest,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => context.push('/withdraw'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.arrow_outward, color: Colors.white, size: 18),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Withdraw',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                // Quick Action Pill Buttons
+                // Quick Action Pill Buttons (4 Tiles)
                 Row(
                   children: [
                     Expanded(
                       child: _buildActionTile(
                         icon: Icons.qr_code_2,
-                        title: 'Deposit Crypto',
+                        title: 'Deposit',
                         onTap: () => context.go('/deposit'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildActionTile(
+                        icon: Icons.account_balance_wallet_outlined,
+                        title: 'Withdraw',
+                        onTap: () => context.push('/withdraw'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: _buildActionTile(
                         icon: Icons.calculate_outlined,
-                        title: 'Live Quote',
+                        title: 'Quotes',
                         onTap: () => context.go('/calculator'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: _buildActionTile(
                         icon: Icons.account_balance_outlined,
-                        title: 'Bank Accounts',
+                        title: 'Banks',
                         onTap: () => context.push('/bank-accounts'),
                       ),
                     ),

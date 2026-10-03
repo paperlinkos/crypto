@@ -276,10 +276,25 @@ class _BankAccountsScreenState extends ConsumerState<BankAccountsScreen> {
 
                     if (!_isAdding) ...[
                       const SizedBox(height: 12),
-                      CustomButton(
-                        text: '+ Link New Bank Account',
-                        variant: ButtonVariant.dark,
-                        onPressed: () => setState(() => _isAdding = true),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CustomButton(
+                              text: 'Withdraw Funds',
+                              variant: ButtonVariant.primary,
+                              icon: Icons.arrow_outward,
+                              onPressed: () => context.push('/withdraw'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: CustomButton(
+                              text: '+ Link Account',
+                              variant: ButtonVariant.dark,
+                              onPressed: () => setState(() => _isAdding = true),
+                            ),
+                          ),
+                        ],
                       ),
                     ] else ...[
                       const SizedBox(height: 16),
