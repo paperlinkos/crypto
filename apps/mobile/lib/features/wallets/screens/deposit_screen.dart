@@ -273,17 +273,23 @@ class _DepositScreenState extends ConsumerState<DepositScreen> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Text(
-                    accountNumber,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.electricMint,
-                      letterSpacing: 2.0,
+                  const Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        accountNumber,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.electricMint,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.copy_rounded, color: AppColors.electricMint, size: 22),
                     onPressed: () => _copyToClipboard(accountNumber, 'Account number'),
