@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
 import { LedgerModule } from './ledger/ledger.module';
+import { WalletsModule } from './wallets/wallets.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LedgerModule } from './ledger/ledger.module';
     RedisModule,
     AuthModule,
     LedgerModule,
+    WalletsModule,
   ],
 })
 export class AppModule {}

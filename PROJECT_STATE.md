@@ -15,16 +15,24 @@
   - Dynamic live balance calculation from immutable journal entries ($\sum \text{Debits} - \sum \text{Credits}$).
   - Strict idempotency key protection preventing double-crediting or duplicate postings.
   - Concurrency verified with atomic database transactions.
-- **Automated Test Suite**: 25/25 E2E tests passing across Auth and Ledger modules.
+- **Wallets & Deposit Detection Module (`/apps/api/src/wallets`)**:
+  - `IWalletProvider` interface and `SandboxWalletProvider` generating valid-format TRC20, Bitcoin, and EVM deposit addresses with QR code generation.
+  - `ProductionWalletProvider` template with documentation links for Yellow Card, Fireblocks, and Quidax.
+  - Deposit webhook handler with signature verification, deduplication by `tx_hash`, and confirmation tracking.
+  - **Rate Lock Guarantee**: Live spot rate locked upon initial detection (`1/3` confirmations).
+  - **Automatic Double-Entry Settlement**: Converts crypto micro-units to fiat kobo and posts balanced ledger credit upon finality (`3/3` confirmations).
+  - Admin deposit simulation tool (`POST /wallets/simulate-deposit`).
+- **Automated Test Suite**: 32/32 E2E tests passing across Auth, Ledger, and Wallets.
 - **Documentation**: `/docs/schema.md` and `/docs/api.md` updated with complete specifications.
 
 ## 2. What Is Mocked / Sandboxed
-- Sandbox OTP code transparency in development mode.
-- Mock exchange rates and sandbox crypto deposit addresses.
+- Sandbox wallet provider simulates blockchain addresses and HMAC signatures.
+- Sandbox OTP transparency during development.
 
 ## 3. API Endpoints That Exist
 - **Auth**: `POST /auth/otp/request`, `POST /auth/signup`, `POST /auth/login`, `POST /auth/admin/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/pin/set`, `POST /auth/pin/verify`, `POST /auth/pin/change`, `POST /auth/2fa/generate`, `POST /auth/2fa/enable`, `POST /auth/2fa/disable`, `GET /auth/devices`, `DELETE /auth/devices/:id`.
 - **Ledger**: `GET /ledger/balances`, `POST /ledger/hold`, `POST /ledger/release`, `POST /ledger/credit`, `POST /ledger/debit`.
+- **Wallets**: `GET /wallets`, `POST /wallets/assign`, `GET /wallets/deposits`, `GET /wallets/deposits/:txHash`, `POST /wallets/webhook`, `POST /wallets/simulate-deposit`.
 
 ## 4. Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string
@@ -33,15 +41,15 @@
 - `PORT`: `4000`
 
 ## 5. Decisions Made and Why
-- **No Editable Balance Column**: Followed Rule #1 strictly; balances are computed by aggregating immutable double-entry journal lines.
-- **Two-tier Sub-Accounts per User**: Each user receives an `ACTIVE` liability sub-account (`2010-USER-...`) and a `HOLD` liability sub-account (`2020-HOLD-...`) so payout reservations never compromise available balances.
+- **Decoupled Wallet Adapters**: Used `IWalletProvider` interface so that switching custody providers (Yellow Card, Fireblocks, Quidax) requires zero changes to core accounting or deposit logic.
+- **Instant Rate Lock at Mempool/1st Confirmation**: Prevents user from suffering slippage during the 3-block confirmation window.
 
 ## 6. Open TODOs / Known Bugs
 - None.
 
 ## 7. Exact Next Task
-- **Prompt 4: Wallets and deposit detection (adapter pattern)**
-  - Create `WalletProvider` interface: `createAddress(user, asset, network)`, `getDepositStatus(txHash)`, `verifyWebhookSignature(req)`.
-  - Implement `SandboxWalletProvider` (simulated addresses & simulated deposits via admin endpoint).
-  - Build deposit webhook handler: signature verification, dedupe by `tx_hash`, confirmation tracking, rate locking at first detection, and ledger credit upon finality.
-  - Add TODO adapter file for production provider with docs link.
+- **Prompt 5: Rates engine**
+  - Create `RateProvider` interface and a service that fetches spot prices (mock/sandbox first), applies a configurable spread per asset, caches in Redis, and stores snapshots in the `rates` table.
+  - Expose `GET /rates` and `GET /rates/quote?asset=&amount=`.
+  - Add admin endpoint to configure spread.
+  - Stale-rate protection: if feed is older than N seconds (e.g. 90s), quotes are refused.

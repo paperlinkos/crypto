@@ -314,3 +314,95 @@ All balances in the system are derived dynamically from immutable journal lines 
   }
   ```
 - **Success Response (200 OK)**: Debits `2010-USER-...-NGN` and credits `1030-BANK-FLOAT-NGN`. Rejects if user available balance is insufficient.
+
+---
+
+## 3. Wallets & Deposit Detection Endpoints
+
+Personal deposit addresses are generated per user, asset, and network. Incoming deposits automatically lock the spot exchange rate and settle directly into the double-entry ledger upon finality (3 confirmations).
+
+### 3.1 Get User Assigned Wallets
+- **Method**: `GET`
+- **Route**: `/wallets`
+- **Auth**: `Bearer <accessToken>`
+- **Success Response (200 OK)**:
+  ```json
+  [
+    {
+      "id": "w-uuid-001",
+      "asset": "USDT",
+      "network": "TRON_TRC20",
+      "address": "TYDzsYUEpvnYmQk4zGP9sWWcTEd2MiAtW6",
+      "qrCodeDataUrl": "data:image/png;base64,..."
+    }
+  ]
+  ```
+
+---
+
+### 3.2 Generate or Assign Deposit Address
+- **Method**: `POST`
+- **Route**: `/wallets/assign`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "asset": "USDT",
+    "network": "TRON_TRC20"
+  }
+  ```
+- **Success Response (200 OK)**: Returns assigned crypto address, network info, and QR code Data URL.
+
+---
+
+### 3.3 List User Deposit History
+- **Method**: `GET`
+- **Route**: `/wallets/deposits`
+- **Auth**: `Bearer <accessToken>`
+- **Success Response (200 OK)**:
+  ```json
+  [
+    {
+      "id": "dep-uuid-001",
+      "txHash": "0x8f3d4e...",
+      "asset": "USDT",
+      "network": "TRON_TRC20",
+      "amountMinor": "100000000", // 100 USDT
+      "confirmations": 3,
+      "requiredConfirmations": 3,
+      "status": "PROCESSED",
+      "lockedRate": "1521.825000",
+      "detectedAt": "2026-10-03T07:00:00.000Z"
+    }
+  ]
+  ```
+
+---
+
+### 3.4 Deposit Webhook Receiver
+- **Method**: `POST`
+- **Route**: `/wallets/webhook`
+- **Headers**: `x-webhook-signature: <signature>`
+- **Request Body**:
+  ```json
+  {
+    "txHash": "0x8f3d...",
+    "address": "TYDzsYUEpvnYmQk4zGP9sWWcTEd2MiAtW6",
+    "asset": "USDT",
+    "network": "TRON_TRC20",
+    "amountMinor": "100000000",
+    "confirmations": 3
+  }
+  ```
+- **Execution Lifecycle**:
+  1. Signature verification & webhook deduplication.
+  2. Rate locked upon first detection (`confirmations: 1`).
+  3. Double-entry ledger automatically credited when `confirmations >= 3`.
+
+---
+
+### 3.5 Simulate Deposit (Sandbox & Admin Tool)
+- **Method**: `POST`
+- **Route**: `/wallets/simulate-deposit`
+- **Auth**: `Bearer <adminAccessToken>` (Admin only)
+- **Request Body**: Same as webhook payload. Allows instant testing of the deposit-to-fiat pipeline without real crypto.
