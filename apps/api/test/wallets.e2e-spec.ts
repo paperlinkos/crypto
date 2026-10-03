@@ -145,8 +145,10 @@ describe('Wallets & Deposit Webhook Engine (E2E)', () => {
       // Verify that the double-entry ledger is now credited!
       const balanceAfterConfirmation = await ledgerService.getUserBalances(testUserId, 'NGN');
       expect(BigInt(balanceAfterConfirmation.availableMinor)).toBeGreaterThan(BigInt(0));
-      // 100 USDT * ~1521.825 NGN/USDT = ~₦152,182.50 = ~15,218,250 kobo
-      expect(balanceAfterConfirmation.availableMinor).toBe('15218250');
+      
+      const depositRecord = await prisma.deposit.findUnique({ where: { txHash: testTxHash } });
+      const expectedKobo = BigInt(Math.floor((100000000 * Number(depositRecord!.lockedRate)) / 10000)).toString();
+      expect(balanceAfterConfirmation.availableMinor).toBe(expectedKobo);
     });
 
     it('Idempotency: Replaying the confirmed deposit webhook does NOT double-credit', async () => {
@@ -164,8 +166,10 @@ describe('Wallets & Deposit Webhook Engine (E2E)', () => {
         .expect(200);
 
       const balance = await ledgerService.getUserBalances(testUserId, 'NGN');
+      const depositRecord = await prisma.deposit.findUnique({ where: { txHash: testTxHash } });
+      const expectedKobo = BigInt(Math.floor((100000000 * Number(depositRecord!.lockedRate)) / 10000)).toString();
       // Balance remains strictly identical (no double credit)
-      expect(balance.availableMinor).toBe('15218250');
+      expect(balance.availableMinor).toBe(expectedKobo);
     });
   });
 

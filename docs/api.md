@@ -574,3 +574,187 @@ Tier progression unlocks higher daily and single-transaction off-ramp payout lim
 - **List Pending Submissions**: `GET /kyc/admin/queue`
 - **Review Profile**: `PATCH /kyc/admin/review/:profileId`
   - **Body**: `{ "status": "APPROVED" }` (Upgrades to Tier 3 ₦50,000,000 limit) or `{ "status": "REJECTED", "rejectionReason": "Address mismatch" }`.
+
+---
+
+## 6. Bank Accounts & Off-Ramp Payout Endpoints
+
+Users link verified bank accounts (with automated NUBAN name resolution) and initiate off-ramp withdrawals protected by Transaction PIN, KYC rolling limit checks, and double-entry ledger hold-and-settle mechanics.
+
+### 6.1 List Supported Commercial Banks
+- **Method**: `GET`
+- **Route**: `/payouts/banks?currency=NGN` (or `currency=GHS`)
+- **Auth**: `Bearer <accessToken>`
+- **Success Response (200 OK)**:
+  ```json
+  [
+    {
+      "code": "058",
+      "name": "Guaranty Trust Bank (GTBank)",
+      "slug": "gtbank",
+      "currency": "NGN"
+    },
+    {
+      "code": "011",
+      "name": "First Bank of Nigeria",
+      "slug": "first-bank",
+      "currency": "NGN"
+    }
+  ]
+  ```
+
+---
+
+### 6.2 Resolve NUBAN Bank Account (Name Enquiry)
+- **Method**: `POST`
+- **Route**: `/payouts/resolve-account`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "accountNumber": "0123456789",
+    "bankCode": "058"
+  }
+  ```
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "accountNumber": "0123456789",
+    "bankCode": "058",
+    "bankName": "Guaranty Trust Bank (GTBank)",
+    "accountName": "CHUKWUDI EMMANUEL OKONKWO"
+  }
+  ```
+
+---
+
+### 6.3 Add Verified Bank Account
+- **Method**: `POST`
+- **Route**: `/payouts/bank-accounts`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "bankCode": "058",
+    "accountNumber": "0123456789",
+    "isDefault": true,
+    "currency": "NGN"
+  }
+  ```
+- **Success Response (201 Created)**: Saves the bank account with verified name enquiry result.
+
+---
+
+### 6.4 List User Saved Bank Accounts
+- **Method**: `GET`
+- **Route**: `/payouts/bank-accounts`
+- **Auth**: `Bearer <accessToken>`
+- **Success Response (200 OK)**:
+  ```json
+  [
+    {
+      "id": "ba-uuid-001",
+      "bankCode": "058",
+      "bankName": "Guaranty Trust Bank (GTBank)",
+      "accountNumber": "0123456789",
+      "verifiedName": "CHUKWUDI EMMANUEL OKONKWO",
+      "currency": "NGN",
+      "isDefault": true,
+      "isVerified": true
+    }
+  ]
+  ```
+
+---
+
+### 6.5 Delete Saved Bank Account
+- **Method**: `DELETE`
+- **Route**: `/payouts/bank-accounts/:id`
+- **Auth**: `Bearer <accessToken>`
+- **Success Response (200 OK)**: `{ "message": "Bank account successfully removed" }`
+
+---
+
+### 6.6 Initiate Off-Ramp Withdrawal (PIN & KYC Protected)
+- **Method**: `POST`
+- **Route**: `/payouts/withdraw`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "bankAccountId": "ba-uuid-001",
+    "amountMinor": "5000000", // ₦50,000 in kobo
+    "pin": "1234",
+    "idempotencyKey": "WITHDRAW-20261003-001",
+    "currency": "NGN",
+    "narration": "Off-ramp withdrawal to GTBank"
+  }
+  ```
+- **Lifecycle & Execution**:
+  1. Transaction PIN is verified against bcrypt hash with 30-min lockout guard.
+  2. KYC rolling 24-hr and single-transaction limits are enforced.
+  3. Balance is reserved in double-entry ledger (`ACTIVE` liability $\rightarrow$ `HOLD` liability).
+  4. Transfer is dispatched to payout rail (Paystack/Monnify/Sandbox).
+  5. Strict idempotency key guarantees duplicate calls never double-debit.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "id": "p-uuid-001",
+    "userId": "u-uuid-001",
+    "bankAccountId": "ba-uuid-001",
+    "idempotencyKey": "WITHDRAW-20261003-001",
+    "providerRef": "TRF_SANDBOX_A1B2C3",
+    "amountMinor": "5000000",
+    "feeMinor": "5375",
+    "currency": "NGN",
+    "status": "PROCESSING",
+    "createdAt": "2026-10-03T07:45:00.000Z"
+  }
+  ```
+
+---
+
+### 6.7 Payout Webhook Receiver
+- **Method**: `POST`
+- **Route**: `/payouts/webhook`
+- **Headers**: `x-payout-signature: <hmac>`
+- **Request Body**:
+  ```json
+  {
+    "event": "transfer.success",
+    "data": {
+      "reference": "TRF_SANDBOX_A1B2C3",
+      "status": "SUCCESS",
+      "amount": 50000
+    }
+  }
+  ```
+- **Behavior**:
+  - `status === SUCCESS`: Executes `settleHold` in double-entry ledger and updates payout to `SUCCESS`.
+  - `status === FAILED`: Executes `release` in double-entry ledger to return held balance back to user's `availableMinor`.
+
+---
+
+### 6.8 Auto-Settlement Preference Toggle
+- **Method**: `PATCH`
+- **Route**: `/payouts/auto-settlement`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**: `{ "autoPayout": true }`
+- **Success Response (200 OK)**: `{ "id": "u-uuid-001", "autoPayout": true }`
+
+---
+
+### 6.9 Get User Payout History
+- **Method**: `GET`
+- **Route**: `/payouts/history`
+- **Auth**: `Bearer <accessToken>`
+- **Success Response (200 OK)**: Returns list of past off-ramp withdrawals with bank recipient details and terminal statuses.
+
+---
+
+### 6.10 Admin Payout Reconciliation Worker
+- **Method**: `POST`
+- **Route**: `/payouts/reconcile`
+- **Auth**: `Bearer <adminAccessToken>` (Admin / Super Admin only)
+- **Success Response (200 OK)**: `{ "reconciledCount": 0, "totalPending": 0 }`
+
