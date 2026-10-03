@@ -481,3 +481,96 @@ Market prices are fetched periodically, cached in Redis with a 30-second TTL, ad
     "spreadPercent": 2
   }
   ```
+
+---
+
+## 5. KYC & Tiered Compliance Endpoints
+
+Tier progression unlocks higher daily and single-transaction off-ramp payout limits. In compliance with Rule #5, raw biometric photos and unmasked ID numbers are never stored in the database.
+
+### Tier Limits Overview
+
+| Tier | Required Verification | Daily Limit | Single Tx Limit |
+|---|---|---|---|
+| **Tier 0** | Basic account (Email/Phone) | ₦0 | ₦0 |
+| **Tier 1** | BVN or NIN Verification | ₦500,000 (50,000,000 kobo) | ₦100,000 (10,000,000 kobo) |
+| **Tier 2** | Government ID + Biometric Face Liveness | ₦5,000,000 (500,000,000 kobo) | ₦1,000,000 (100,000,000 kobo) |
+| **Tier 3** | Proof of Address (Utility Bill / Bank Statement) | ₦50,000,000 (5,000,000,000 kobo) | ₦10,000,000 (1,000,000,000 kobo) |
+
+---
+
+### 5.1 Get KYC Status & Remaining Limits
+- **Method**: `GET`
+- **Route**: `/kyc/status`
+- **Auth**: `Bearer <accessToken>`
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "tier": "TIER_1",
+    "status": "APPROVED",
+    "idType": "BVN",
+    "idNumberMasked": "2233****890",
+    "verifiedName": "CHUKWUDI OKONKWO",
+    "dailyLimitMinor": "50000000",
+    "singleTxLimitMinor": "10000000",
+    "dailyUsedMinor": "0",
+    "dailyRemainingMinor": "50000000"
+  }
+  ```
+
+---
+
+### 5.2 Submit Tier 1 (BVN / NIN)
+- **Method**: `POST`
+- **Route**: `/kyc/tier1`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "idNumber": "22334455667",
+    "idType": "BVN", // "BVN" or "NIN"
+    "firstName": "Chukwudi",
+    "lastName": "Okonkwo"
+  }
+  ```
+- **Success Response (200 OK)**: Upgrades account to Tier 1 immediately with ₦500,000 daily limit.
+
+---
+
+### 5.3 Submit Tier 2 (Government ID + Face Liveness)
+- **Method**: `POST`
+- **Route**: `/kyc/tier2`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "idType": "PASSPORT", // "PASSPORT" | "DRIVERS_LICENSE" | "NATIONAL_ID"
+    "idNumber": "A98765432",
+    "selfieBase64": "data:image/jpeg;base64,..."
+  }
+  ```
+- **Success Response (200 OK)**: Upgrades account to Tier 2 (₦5,000,000 daily limit).
+
+---
+
+### 5.4 Submit Tier 3 (Proof of Address)
+- **Method**: `POST`
+- **Route**: `/kyc/tier3`
+- **Auth**: `Bearer <accessToken>`
+- **Request Body**:
+  ```json
+  {
+    "residentialAddress": "Plot 10, Victoria Island",
+    "city": "Lagos",
+    "state": "Lagos",
+    "utilityDocType": "ELECTRICITY_BILL"
+  }
+  ```
+- **Success Response (200 OK)**: Queues profile for Compliance team review.
+
+---
+
+### 5.5 Compliance Review Queue (Admin/Staff Only)
+- **List Pending Submissions**: `GET /kyc/admin/queue`
+- **Review Profile**: `PATCH /kyc/admin/review/:profileId`
+  - **Body**: `{ "status": "APPROVED" }` (Upgrades to Tier 3 ₦50,000,000 limit) or `{ "status": "REJECTED", "rejectionReason": "Address mismatch" }`.

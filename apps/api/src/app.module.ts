@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { RatesModule } from './rates/rates.module';
+import { KycModule } from './kyc/kyc.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { RatesModule } from './rates/rates.module';
     LedgerModule,
     WalletsModule,
     RatesModule,
+    KycModule,
   ],
 })
 export class AppModule {}
