@@ -15,14 +15,24 @@
   - Payout limit enforcement logic (`enforcePayoutLimits`) checking single-tx and 24h rolling daily aggregates.
   - Compliance review queue (`GET /kyc/admin/queue`) and manual review actions with audit logging.
 - **Bank Accounts & Off-Ramp Payouts Engine (`/apps/api/src/payouts`)**:
-  - `IPayoutProvider` adapter architecture with `SandboxPayoutProvider` (supporting 11 Nigerian commercial banks/fintechs & 5 Ghanaian mobile money providers) and `ProductionPayoutProvider` template (Paystack / Monnify).
+  - `IPayoutProvider` adapter architecture with `SandboxPayoutProvider` (11 Nigerian banks & 5 Ghanaian mobile money providers) and `ProductionPayoutProvider` template (Paystack / Monnify).
   - NUBAN bank account resolution with real name enquiry.
-  - Bank account profile storage with default account management and duplicate protection.
   - Double-entry off-ramp withdrawal pipeline: PIN verification $\rightarrow$ KYC limit check $\rightarrow$ Ledger hold placed on active balance $\rightarrow$ Gateway transfer dispatched $\rightarrow$ Settle hold on success / Release hold on failure.
   - Asynchronous gateway webhook receiver with HMAC signature verification.
-  - Auto-settlement toggle (`autoPayout: true`) and automated payout trigger upon crypto deposit finality.
-  - Admin reconciliation worker for pending transfers.
-- **Automated Test Suite**: 58/58 E2E tests passing across all 6 core API suites (`auth`, `ledger`, `wallets`, `rates`, `kyc`, `payouts`).
+  - Auto-settlement toggle and automated payout trigger upon crypto deposit finality.
+- **Flutter Client Mobile Application (`/apps/mobile`)**:
+  - **Design System ("Green & Its Cousins")**: Electric Mint (`#00E599`), Deep Emerald (`#0E5A3E`), Obsidian Forest (`#0A140F`), Porcelain Sage (`#F6FAF7`), Google Outfit typography.
+  - **State Management & Router**: Flutter Riverpod 2.6 (`authProvider`, `ratesProvider`, `walletsProvider`) and GoRouter 14.8.
+  - **Key Screens**:
+    1. `OnboardingScreen`: Feature card stack with value proposition.
+    2. `LoginScreen`: Email/Phone toggle, signup/login switch, and error banners.
+    3. `OtpVerificationScreen`: 6-digit OTP verification with sandbox code transparency.
+    4. `PinSetupScreen`: 4-digit numeric keypad with biometric Face ID / Fingerprint toggle.
+    5. `HomeDashboardScreen`: Estimated fiat portfolio in NGN/GHS, live rates ticker, quick action pills, and recent deposits activity feed.
+    6. `DepositScreen`: Asset & network pill selector, high-contrast QR code generation, 1-tap copy, and 15-minute rate lock guarantee info.
+    7. `RateCalculatorScreen`: Live quote calculator with 15-minute guaranteed rate lock countdown circular progress ring and spread breakdown.
+    8. `AppScaffold`: Minimalist floating pill dock navigation.
+- **Automated Test Suite**: 58/58 NestJS backend API tests passing + Flutter widget smoke test passing.
 - **Documentation**: `/docs/schema.md` and `/docs/api.md` updated with complete specifications.
 
 ## 2. What Is Mocked / Sandboxed
@@ -46,23 +56,17 @@
 - `PORT`: `4000`
 
 ## 5. Decisions Made and Why
-- **Hold-and-Settle Double-Entry Architecture**: Customer funds are immediately placed into a `HOLD` liability account during off-ramp dispatch. If the recipient bank rejects or delays the transfer, funds remain safe and can be atomically released back to `ACTIVE` available balance without manual account edits.
-- **Strict Idempotency Guard**: All withdrawals and webhooks utilize unique idempotency keys with unique database constraints to prevent duplicate disbursements under network retries.
-- **Dynamic Deposit-to-Payout Pipeline**: When `autoPayout` is enabled on the user profile, confirmed crypto deposits automatically convert and route directly to their default verified bank account.
+- **Floating Pill Dock Navigation**: Keeps primary navigation within natural thumb reach while maximizing canvas real estate for cards and live progress rings.
+- **Real-Time 15-Minute Countdown Ring**: Visual feedback with `ProgressRing` clearly communicates the guaranteed rate lock time window before market re-quote.
 
 ## 6. Open TODOs / Known Bugs
 - None.
 
 ## 7. Exact Next Task
-- **Phase 8: Flutter Client Mobile Application (`/apps/mobile`)**
-  - Implement full design system with "Green Gradients & Cousins" palette (Electric Mint `#00E599`, Deep Emerald `#0E5A3E`, Obsidian Forest `#0A140F`, Porcelain Sage `#F6FAF7`).
-  - Configure navigation framework (`go_router`) and state management (Riverpod).
-  - Build screens:
-    1. Onboarding & Phone/Email OTP Auth.
-    2. 4-Digit PIN Setup & Biometrics (FaceID / Fingerprint).
-    3. Home Dashboard (Balance Card, Quick Actions, Live Rates Ticker, Recent Activity Feed).
-    4. Crypto Deposit Screen (QR Code, 1-tap Copy Address, Blockchain Confirmation Progress Ring).
-    5. Live Rate Calculator & 15-Minute Guaranteed Quote Countdown Ring.
-    6. Bank Account Management (NUBAN Bank Name Enquiry & Saved Accounts).
-    7. Off-Ramp Instant Withdrawal & Auto-Payout Toggle.
-    8. KYC Tier Progression & Verification Status Tracker.
+- **Phase 9: Next.js Admin Dashboard (`/apps/admin`)**
+  - Implement Next.js + Tailwind CSS back-office dashboard.
+  - Admin login with RBAC (`ADMIN`, `COMPLIANCE`, `SUPER_ADMIN`).
+  - KYC compliance review queue with 1-click approve/reject.
+  - Transactions, deposits, and payouts inspector with ledger balance audit trail.
+  - Rate & spread controller.
+  - Sandbox Deposit Simulator tool for live E2E off-ramp testing.
