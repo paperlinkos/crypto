@@ -98,26 +98,29 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                         ),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightMint,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.jade.withOpacity(0.4)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.verified, color: AppColors.deepEmerald, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            kycTier.replaceAll('_', ' '),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.deepEmerald,
+                    GestureDetector(
+                      onTap: () => context.push('/kyc'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightMint,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.jade.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.verified, color: AppColors.deepEmerald, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              kycTier.replaceAll('_', ' '),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.deepEmerald,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -133,7 +136,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                     borderRadius: BorderRadius.circular(26),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.deepEmerald.withOpacity(0.3),
+                        color: AppColors.deepEmerald.withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -159,7 +162,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                             height: 28,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: DropdownButton<String>(
@@ -206,7 +209,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -239,7 +242,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                       child: _buildActionTile(
                         icon: Icons.account_balance_outlined,
                         title: 'Bank Accounts',
-                        onTap: () => context.go('/deposit'),
+                        onTap: () => context.push('/bank-accounts'),
                       ),
                     ),
                   ],

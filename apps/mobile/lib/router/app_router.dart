@@ -6,6 +6,10 @@ import '../features/auth/screens/otp_verification_screen.dart';
 import '../features/auth/screens/pin_setup_screen.dart';
 import '../features/calculator/screens/rate_calculator_screen.dart';
 import '../features/home/screens/home_dashboard_screen.dart';
+import '../features/kyc/screens/kyc_flow_screen.dart';
+import '../features/payouts/screens/bank_accounts_screen.dart';
+import '../features/payouts/screens/withdraw_screen.dart';
+import '../features/settings/screens/security_settings_screen.dart';
 import '../features/wallets/screens/deposit_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -47,8 +51,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const RateCalculatorScreen(),
       ),
       GoRoute(
+        path: '/kyc',
+        builder: (context, state) => const KycFlowScreen(),
+      ),
+      GoRoute(
+        path: '/bank-accounts',
+        builder: (context, state) => const BankAccountsScreen(),
+      ),
+      GoRoute(
+        path: '/withdraw',
+        builder: (context, state) => const WithdrawScreen(),
+      ),
+      GoRoute(
         path: '/profile',
-        builder: (context, state) => const HomeDashboardScreen(),
+        builder: (context, state) => const SecuritySettingsScreen(),
       ),
     ],
   );
