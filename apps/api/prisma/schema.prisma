@@ -1,0 +1,441 @@
+// Prisma Schema for Off-Ramp System
+// Core Rules:
+// 1. Double-entry ledger with integer minor units (BigInt for kobo/satoshis/micro-units).
+// 2. Strict idempotency keys and unique constraints on external transaction references.
+// 3. Provider references abstracted for interchangeable adapters.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  LOCKED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPPORT
+  COMPLIANCE
+  SUPER_ADMIN
+}
+
+enum KycTier {
+  TIER_0
+  TIER_1
+  TIER_2
+  TIER_3
+}
+
+enum KycStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_MORE_INFO
+}
+
+enum CryptoAsset {
+  USDT
+  USDC
+  BTC
+  ETH
+}
+
+enum BlockchainNetwork {
+  TRON_TRC20
+  ETHEREUM_ERC20
+  BINANCE_BEP20
+  POLYGON
+  BITCOIN
+}
+
+enum FiatCurrency {
+  NGN
+  GHS
+}
+
+enum DepositStatus {
+  DETECTED
+  CONFIRMING
+  CONFIRMED
+  PROCESSED
+  FAILED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  INITIATED
+  HOLD_RESERVED
+  PROCESSING
+  SUCCESS
+  FAILED
+  CANCELLED
+  RECONCILING
+}
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum SupportTicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// ==========================================
+// 1. USERS & IDENTITY
+// ==========================================
+
+model User {
+  id                 String      @id @default(uuid()) @db.Uuid
+  email              String?     @unique @db.VarChar(255)
+  phoneNumber        String?     @unique @map("phone_number") @db.VarChar(32)
+  passwordHash       String?     @map("password_hash") @db.VarChar(255)
+  pinHash            String?     @map("pin_hash") @db.VarChar(255)
+  pinAttempts        Int         @default(0) @map("pin_attempts")
+  pinLockedUntil     DateTime?   @map("pin_locked_until") @db.Timestamptz(6)
+  isTwoFactorEnabled Boolean     @default(false) @map("is_two_factor_enabled")
+  twoFactorSecret    String?     @map("two_factor_secret") @db.VarChar(255)
+  status             UserStatus  @default(ACTIVE)
+  country            String      @default("NG") @db.VarChar(2)
+  autoPayout         Boolean     @default(true) @map("auto_payout")
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  devices        Device[]
+  sessions       Session[]
+  kycProfile     KycProfile?
+  wallets        Wallet[]
+  deposits       Deposit[]
+  bankAccounts   BankAccount[]
+  payouts        Payout[]
+  supportTickets SupportTicket[]
+  ledgerAccounts LedgerAccount[]
+
+  @@map("users")
+}
+
+model Device {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  deviceFingerprint String    @map("device_fingerprint") @db.VarChar(255)
+  deviceName        String?   @map("device_name") @db.VarChar(128)
+  os                String?   @db.VarChar(64)
+  ipAddress         String?   @map("ip_address") @db.VarChar(45)
+  isTrusted         Boolean   @default(false) @map("is_trusted")
+  lastActiveAt      DateTime  @default(now()) @map("last_active_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  @@unique([userId, deviceFingerprint])
+  @@map("devices")
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  deviceId         String?   @map("device_id") @db.Uuid
+  refreshTokenHash String    @unique @map("refresh_token_hash") @db.VarChar(255)
+  ipAddress        String?   @map("ip_address") @db.VarChar(45)
+  userAgent        String?   @map("user_agent") @db.VarChar(512)
+  isRevoked        Boolean   @default(false) @map("is_revoked")
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRevoked])
+  @@map("sessions")
+}
+
+// ==========================================
+// 2. KYC PROFILES & LIMITS
+// ==========================================
+
+model KycProfile {
+  id                 String     @id @default(uuid()) @db.Uuid
+  userId             String     @unique @map("user_id") @db.Uuid
+  tier               KycTier    @default(TIER_0)
+  status             KycStatus  @default(NOT_SUBMITTED)
+  providerRef        String?    @map("provider_ref") @db.VarChar(128)
+  idType             String?    @map("id_type") @db.VarChar(32)
+  idNumberMasked     String?    @map("id_number_masked") @db.VarChar(64)
+  verifiedName       String?    @map("verified_name") @db.VarChar(255)
+  rejectionReason    String?    @map("rejection_reason") @db.Text
+  dailyLimitMinor    BigInt     @default(50000000) @map("daily_limit_minor") // In minor units (500,000 NGN = 50,000,000 kobo)
+  singleTxLimitMinor BigInt     @default(10000000) @map("single_tx_limit_minor") // In minor units
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("kyc_profiles")
+}
+
+// ==========================================
+// 3. WALLETS & DEPOSITS
+// ==========================================
+
+model Wallet {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  asset       CryptoAsset
+  network     BlockchainNetwork
+  address     String            @unique @db.VarChar(255)
+  providerRef String            @map("provider_ref") @db.VarChar(128)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deposits Deposit[]
+
+  @@unique([userId, asset, network])
+  @@index([address])
+  @@map("wallets")
+}
+
+model Deposit {
+  id                    String            @id @default(uuid()) @db.Uuid
+  txHash                String            @unique @map("tx_hash") @db.VarChar(255)
+  walletId              String            @map("wallet_id") @db.Uuid
+  userId                String            @map("user_id") @db.Uuid
+  asset                 CryptoAsset
+  network               BlockchainNetwork
+  amountMinor           BigInt            @map("amount_minor") // Minor units (e.g. micro-USDT, satoshis)
+  confirmations         Int               @default(0)
+  requiredConfirmations Int               @default(3) @map("required_confirmations")
+  status                DepositStatus     @default(DETECTED)
+  lockedRate            Decimal           @map("locked_rate") @db.Decimal(18, 6)
+  lockedRateExpiresAt   DateTime          @map("locked_rate_expires_at") @db.Timestamptz(6)
+  detectedAt            DateTime          @default(now()) @map("detected_at") @db.Timestamptz(6)
+  confirmedAt           DateTime?         @map("confirmed_at") @db.Timestamptz(6)
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  wallet  Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payouts Payout[]
+
+  @@index([txHash])
+  @@index([userId, status])
+  @@map("deposits")
+}
+
+// ==========================================
+// 4. DOUBLE-ENTRY LEDGER
+// ==========================================
+
+model LedgerAccount {
+  id            String            @id @default(uuid()) @db.Uuid
+  accountNumber String            @unique @map("account_number") @db.VarChar(64)
+  name          String            @db.VarChar(128)
+  type          LedgerAccountType
+  currency      String            @db.VarChar(12) // NGN, GHS, USDT, BTC, etc.
+  userId        String?           @map("user_id") @db.Uuid // Nullable: platform master accounts vs user sub-accounts
+  isActive      Boolean           @default(true) @map("is_active")
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user          User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  debitEntries  LedgerEntry[]     @relation("DebitAccount")
+  creditEntries LedgerEntry[]     @relation("CreditAccount")
+
+  @@index([type, currency])
+  @@index([userId])
+  @@map("ledger_accounts")
+}
+
+model LedgerEntry {
+  id              String        @id @default(uuid()) @db.Uuid
+  transactionRef  String        @map("transaction_ref") @db.VarChar(128) // Unique business transaction/idempotency key
+  debitAccountId  String        @map("debit_account_id") @db.Uuid
+  creditAccountId String        @map("credit_account_id") @db.Uuid
+  amountMinor     BigInt        @map("amount_minor") // Balanced integer minor units (always > 0)
+  currency        String        @db.VarChar(12)
+  description     String        @db.VarChar(255)
+  metadata        Json?         @db.JsonB
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  debitAccount    LedgerAccount @relation("DebitAccount", fields: [debitAccountId], references: [id])
+  creditAccount   LedgerAccount @relation("CreditAccount", fields: [creditAccountId], references: [id])
+
+  @@index([transactionRef])
+  @@index([debitAccountId, createdAt])
+  @@index([creditAccountId, createdAt])
+  @@map("ledger_entries")
+}
+
+// ==========================================
+// 5. RATES ENGINE
+// ==========================================
+
+model Rate {
+  id            String       @id @default(uuid()) @db.Uuid
+  asset         CryptoAsset
+  fiat          FiatCurrency
+  baseSpotRate  Decimal      @map("base_spot_rate") @db.Decimal(18, 6)
+  spreadPercent Decimal      @map("spread_percent") @db.Decimal(5, 2)
+  effectiveRate Decimal      @map("effective_rate") @db.Decimal(18, 6)
+  source        String       @default("SANDBOX_FEED") @db.VarChar(64)
+  isStale       Boolean      @default(false) @map("is_stale")
+  expiresAt     DateTime     @map("expires_at") @db.Timestamptz(6)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([asset, fiat, createdAt(sort: Desc)])
+  @@map("rates")
+}
+
+// ==========================================
+// 6. BANK ACCOUNTS & PAYOUTS
+// ==========================================
+
+model BankAccount {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String       @map("user_id") @db.Uuid
+  bankCode     String       @map("bank_code") @db.VarChar(16)
+  bankName     String       @map("bank_name") @db.VarChar(128)
+  accountNumber String      @map("account_number") @db.VarChar(16)
+  verifiedName String       @map("verified_name") @db.VarChar(255)
+  currency     FiatCurrency @default(NGN)
+  isDefault    Boolean      @default(false) @map("is_default")
+  isVerified   Boolean      @default(true) @map("is_verified")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payouts Payout[]
+
+  @@unique([userId, bankCode, accountNumber])
+  @@map("bank_accounts")
+}
+
+model Payout {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  bankAccountId  String       @map("bank_account_id") @db.Uuid
+  depositId      String?      @map("deposit_id") @db.Uuid
+  idempotencyKey String       @unique @map("idempotency_key") @db.VarChar(128)
+  providerRef    String?      @map("provider_ref") @db.VarChar(128)
+  amountMinor    BigInt       @map("amount_minor") // In kobo/pesewas
+  feeMinor       BigInt       @default(0) @map("fee_minor")
+  currency       FiatCurrency @default(NGN)
+  status         PayoutStatus @default(INITIATED)
+  failureReason  String?      @map("failure_reason") @db.Text
+  attempts       Int          @default(0)
+  lastAttemptAt  DateTime?    @map("last_attempt_at") @db.Timestamptz(6)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  deposit     Deposit?    @relation(fields: [depositId], references: [id], onDelete: SetNull)
+
+  @@index([idempotencyKey])
+  @@index([userId, status])
+  @@map("payouts")
+}
+
+// ==========================================
+// 7. WEBHOOKS & AUDIT LOGS
+// ==========================================
+
+model WebhookLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  provider       String    @db.VarChar(64)
+  eventType      String    @map("event_type") @db.VarChar(128)
+  idempotencyKey String    @unique @map("idempotency_key") @db.VarChar(255)
+  signature      String?   @db.VarChar(512)
+  payload        Json      @db.JsonB
+  isProcessed    Boolean   @default(false) @map("is_processed")
+  processedAt    DateTime? @map("processed_at") @db.Timestamptz(6)
+  errorMessage   String?   @map("error_message") @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([provider, eventType])
+  @@map("webhooks_log")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  actorType     String   @map("actor_type") @db.VarChar(32) // USER, ADMIN, SYSTEM, CRON
+  actorId       String?  @map("actor_id") @db.Uuid
+  action        String   @db.VarChar(64) // AuditAction
+  entityType    String   @map("entity_type") @db.VarChar(64) // USER, LEDGER, KYC, DEPOSIT, PAYOUT, RATE
+  entityId      String?  @map("entity_id") @db.Uuid
+  previousState Json?    @map("previous_state") @db.JsonB
+  newState      Json?    @map("new_state") @db.JsonB
+  ipAddress     String?  @map("ip_address") @db.VarChar(45)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId])
+  @@index([actorType, actorId])
+  @@map("audit_logs")
+}
+
+// ==========================================
+// 8. ADMIN & SUPPORT
+// ==========================================
+
+model AdminUser {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  name         String    @db.VarChar(128)
+  role         UserRole  @default(ADMIN)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  assignedTickets SupportTicket[]
+
+  @@map("admin_users")
+}
+
+model SupportTicket {
+  id           String                @id @default(uuid()) @db.Uuid
+  ticketNumber String                @unique @map("ticket_number") @db.VarChar(32)
+  userId       String                @map("user_id") @db.Uuid
+  subject      String                @db.VarChar(255)
+  message      String                @db.Text
+  priority     SupportTicketPriority @default(MEDIUM)
+  status       SupportTicketStatus   @default(OPEN)
+  assignedTo   String?               @map("assigned_to") @db.Uuid
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignee AdminUser? @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@map("support_tickets")
+}

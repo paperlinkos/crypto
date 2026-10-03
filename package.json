@@ -1,0 +1,27 @@
+{
+  "name": "offramp-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Institutional-grade Crypto-to-Fiat Off-Ramp Platform (NGN & GHS)",
+  "workspaces": [
+    "packages/*",
+    "apps/api",
+    "apps/admin"
+  ],
+  "scripts": {
+    "dev:docker": "docker compose up -d",
+    "down:docker": "docker compose down",
+    "db:migrate": "npm run --workspace=apps/api prisma:migrate",
+    "db:seed": "npm run --workspace=apps/api prisma:seed",
+    "db:studio": "npm run --workspace=apps/api prisma:studio",
+    "dev:api": "npm run --workspace=apps/api start:dev",
+    "dev:admin": "npm run --workspace=apps/admin dev",
+    "dev:mobile": "cd apps/mobile && flutter run -d chrome",
+    "build:packages": "npm run --workspace=packages/shared build",
+    "lint": "npm run --workspaces --if-present lint",
+    "test": "npm run --workspaces --if-present test"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
