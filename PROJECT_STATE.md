@@ -21,7 +21,7 @@
 - **Flutter Client Mobile Application (`/apps/mobile`)**:
   - **Design System ("Green & Its Cousins")**: Electric Mint (`#00E599`), Deep Emerald (`#0E5A3E`), Obsidian Forest (`#0A140F`), Porcelain Sage (`#F6FAF7`), Google Outfit typography.
   - **State Management & Router**: Flutter Riverpod 2.6 (`authProvider`, `ratesProvider`, `walletsProvider`) and GoRouter 14.8.
-  - **Screens**: Onboarding, Login/Signup, OTP Verification, PIN Setup with Biometrics, Home Dashboard, Deposit Crypto (with QR), and Rate Calculator (with 15-minute countdown progress ring).
+  - **Screens**: 3-Page High-Fidelity Onboarding (crisp white porcelain canvas, deposit-to-bank settlement illustration, 15-minute rate lock dial, and double-entry ledger preview), Login/Signup, OTP Verification, PIN Setup with Biometrics, Home Dashboard, Deposit Crypto (with QR), Rate Calculator (with 15-minute countdown progress ring), Bank Accounts, and Withdraw Screen (with segmented Bank Payout vs. Crypto Withdrawal toggle).
 - **Next.js Admin Dashboard (`/apps/admin`)**:
   - Role-based staff authentication (`ADMIN`, `COMPLIANCE`, `SUPER_ADMIN`).
   - Executive KPI Cards: 24h Settlement Volume, Float Buffer, Average Settlement Latency.
